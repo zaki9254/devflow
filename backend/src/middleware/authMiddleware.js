@@ -9,13 +9,36 @@ const protect = async (req, res, next) => {
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer")
     ) {
-      token = req.headers.authorization.spliit("")[1];
+      token = req.headers.authorization.split(" ")[1];
     }
+
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: "Not authorized,No token provided",
+        message: "Not authorized. No token provided.",
       });
     }
-  } catch (error) {}
+
+    const decoded = jwt.verify(token, "devflow_jwt_secret_2024");
+
+    req.user = await User.findById(decoded.id).select(
+      "-password -verificationToken -resetPasswordToken",
+    );
+
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "User no longer exists.",
+      });
+    }
+
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "Not authorized. Token failed.",
+    });
+  }
 };
+
+module.exports = { protect };
