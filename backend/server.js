@@ -23,7 +23,12 @@ const app = express();
 // Raw body needed for Stripe webhook signature verification
 app.use("/api/billing/webhook", express.raw({ type: "application/json" }));
 
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://localhost:3001"],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // Routes
@@ -43,8 +48,12 @@ app.use(errorHandler);
 
 // Socket.io setup
 const server = http.createServer(app);
+
 const io = new Server(server, {
-  cors: { origin: process.env.FRONTEND_URL, methods: ["GET", "POST"] },
+  cors: {
+    origin: ["http://localhost:3000", "http://localhost:3001"],
+    methods: ["GET", "POST"],
+  },
 });
 
 // Attach io to app so controllers can emit events
