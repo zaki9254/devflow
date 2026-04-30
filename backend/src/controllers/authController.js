@@ -10,9 +10,67 @@ try {
   redis = null;
 }
 
+// const register = async (req, res) => {
+//   try {
+//     const { name, email, password, workspaceName } = req.body;
+
+//     if (!name || !email || !password || !workspaceName) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Please provide name, email, password and workspace name.",
+//       });
+//     }
+
+//     const existingUser = await User.findOne({ email });
+//     if (existingUser) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Email already registered.",
+//       });
+//     }
+
+//     const newUser = await User.create({ name, email, password });
+
+//     const slug = generateSlug(workspaceName);
+//     const workspace = await Workspace.create({
+//       name: workspaceName,
+//       slug,
+//       owner: newUser._id,
+//       members: [{ user: newUser._id, role: "owner" }],
+//     });
+
+//     const token = generateToken(newUser._id);
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Account created successfully.",
+//       data: {
+//         user: {
+//           _id: newUser._id,
+//           name: newUser.name,
+//           email: newUser.email,
+//           avatar: newUser.avatar,
+//         },
+//         workspace: {
+//           _id: workspace._id,
+//           name: workspace.name,
+//           slug: workspace.slug,
+//           plan: workspace.plan,
+//         },
+//         token,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Register error:", error); // Add this line
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
 const register = async (req, res) => {
+  console.log("1. Register hit");
   try {
     const { name, email, password, workspaceName } = req.body;
+    console.log("2. Body:", { name, email, workspaceName });
 
     if (!name || !email || !password || !workspaceName) {
       return res.status(400).json({
@@ -22,14 +80,10 @@ const register = async (req, res) => {
     }
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already registered.",
-      });
-    }
+    console.log("3. Existing user check done");
 
     const newUser = await User.create({ name, email, password });
+    console.log("4. User created:", newUser._id);
 
     const slug = generateSlug(workspaceName);
     const workspace = await Workspace.create({
@@ -38,30 +92,26 @@ const register = async (req, res) => {
       owner: newUser._id,
       members: [{ user: newUser._id, role: "owner" }],
     });
+    console.log("5. Workspace created:", workspace._id);
 
     const token = generateToken(newUser._id);
+    console.log("6. Token generated");
 
     res.status(201).json({
       success: true,
       message: "Account created successfully.",
       data: {
-        user: {
-          _id: newUser._id,
-          name: newUser.name,
-          email: newUser.email,
-          avatar: newUser.avatar,
-        },
+        user: { _id: newUser._id, name: newUser.name, email: newUser.email },
         workspace: {
           _id: workspace._id,
           name: workspace.name,
           slug: workspace.slug,
-          plan: workspace.plan,
         },
         token,
       },
     });
   } catch (error) {
-    console.error("Register error:", error); // Add this line
+    console.error("Register error:", error.stack);
     res.status(500).json({ success: false, message: error.message });
   }
 };

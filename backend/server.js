@@ -46,6 +46,11 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/billing", billingRoutes);
 
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
 // Health check
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
