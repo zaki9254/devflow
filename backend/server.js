@@ -19,13 +19,19 @@ const errorHandler = require("./src/middleware/errorHandler");
 connectDB();
 
 const app = express();
+// Trust proxy — required for rate limiting on Render/Railway
+app.set("trust proxy", 1);
 
 // Raw body needed for Stripe webhook signature verification
 app.use("/api/billing/webhook", express.raw({ type: "application/json" }));
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://devflow-frontend-five.vercel.app",
+    ],
     credentials: true,
   }),
 );
@@ -51,7 +57,10 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: [
+      "http://localhost:3000",
+      "https://devflow-frontend-five.vercel.app",
+    ],
     methods: ["GET", "POST"],
   },
 });

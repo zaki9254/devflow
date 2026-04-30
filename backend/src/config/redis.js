@@ -3,20 +3,22 @@ const Redis = require("ioredis");
 let redis = null;
 
 try {
-  redis = new Redis(process.env.REDIS_URL, {
-    lazyConnect: false,
-    retryStrategy: (times) => {
-      if (times > 3) return null;
-      return times * 200;
-    },
-  });
+  if (process.env.REDIS_URL) {
+    redis = new Redis(process.env.REDIS_URL, {
+      lazyConnect: true,
+      retryStrategy: () => null,
+      maxRetriesPerRequest: 1,
+    });
 
-  redis.on("connect", () => console.log("Redis connected"));
-  redis.on("error", (err) => {
-    console.log("Redis error (non-fatal):", err.message);
-  });
-} catch (err) {
-  console.log("Redis unavailable, continuing without it.");
+    redis.on("connect", () => console.log("Redis connected"));
+    redis.on("error", (err) => {
+      console.log("Redis error (non-fatal):", err.message);
+      redis = null;
+    });
+  }
+} catch (e) {
+  console.log("Redis unavailable");
+  redis = null;
 }
 
 module.exports = redis;

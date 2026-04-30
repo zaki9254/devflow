@@ -1,8 +1,8 @@
-const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Workspace = require("../models/Workspace");
 const generateToken = require("../utils/generateToken");
 const generateSlug = require("../utils/generateSlug");
+
 let redis;
 try {
   redis = require("../config/redis");
@@ -29,15 +29,7 @@ const register = async (req, res) => {
       });
     }
 
-    // Hash password manually
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const newUser = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-    });
+    const newUser = await User.create({ name, email, password });
 
     const slug = generateSlug(workspaceName);
     const workspace = await Workspace.create({
@@ -69,6 +61,7 @@ const register = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Register error:", error); // Add this line
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -93,7 +86,7 @@ const login = async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, foundUser.password);
+    const isMatch = await foundUser.matchPassword(password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -107,12 +100,16 @@ const login = async (req, res) => {
 
     const token = generateToken(foundUser._id);
 
-    if (redis) {
-      await redis.setex(
-        `session:${foundUser._id}`,
-        7 * 24 * 60 * 60,
-        JSON.stringify({ _id: foundUser._id, email: foundUser.email }),
-      );
+    try {
+      if (redis) {
+        await redis.setex(
+          `session:${foundUser._id}`,
+          7 * 24 * 60 * 60,
+          JSON.stringify({ _id: foundUser._id, email: foundUser.email }),
+        );
+      }
+    } catch (redisError) {
+      console.log("Redis unavailable, skipping session cache");
     }
 
     res.json({
@@ -155,8 +152,12 @@ const getMe = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    if (redis) {
-      await redis.del(`session:${req.user._id}`);
+    try {
+      if (redis) {
+        await redis.del(`session:${req.user._id}`);
+      }
+    } catch (redisError) {
+      console.log("Redis unavailable, skipping session delete");
     }
     res.json({ success: true, message: "Logged out successfully." });
   } catch (error) {
